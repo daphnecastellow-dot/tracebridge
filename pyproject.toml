@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tracebridge"
+version = "0.1.0"
+description = "A provenance-preserving interchange layer for independent research tools."
+requires-python = ">=3.10"
+
+[project.scripts]
+tracebridge = "tracebridge:main"
+
+[tool.setuptools]
+py-modules = ["tracebridge"]
