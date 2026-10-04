@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Move provenance-aware records between independent tools without flattening them."""
+"""Move provenance-aware records between independent tools without flattening them.\n\nThe bridge transports structure while preserving each record's native origin.\n"""
 
 from __future__ import annotations
 
