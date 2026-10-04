@@ -1,0 +1,39 @@
+name: Tracebridge tests
+
+on:
+  push:
+    paths:
+      - "tracebridge.py"
+      - "pyproject.toml"
+      - "schema.json"
+      - "tests/**"
+      - "examples/**"
+      - ".github/workflows/tracebridge-tests.yml"
+  pull_request:
+    paths:
+      - "tracebridge.py"
+      - "pyproject.toml"
+      - "schema.json"
+      - "tests/**"
+      - "examples/**"
+      - ".github/workflows/tracebridge-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate demo packet
+        run: python tracebridge.py validate examples/demo.json
+      - name: Render demo packet
+        run: |
+          python tracebridge.py render examples/demo.json -o /tmp/tracebridge-demo.md
+          python tracebridge.py graph examples/demo.json -o /tmp/tracebridge-demo.mmd
