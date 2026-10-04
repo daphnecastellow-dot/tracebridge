@@ -1,0 +1,73 @@
+{
+  "format": "tracebridge/0.1",
+  "created_at": "2026-10-04T22:20:00Z",
+  "origin": {
+    "tool": "tracebridge",
+    "project": "north-reach-demo",
+    "tool_version": "0.1",
+    "repository": "https://github.com/daphnecastellow-dot/tracebridge"
+  },
+  "merged_from": [
+    {"tool": "sourceweave", "project": "north-reach", "tool_version": "0.1"},
+    {"tool": "evidence-ledger", "project": "north-reach", "tool_version": "0.1"},
+    {"tool": "provenance-lens", "project": "north-reach", "tool_version": "0.1"}
+  ],
+  "records": [
+    {
+      "id": "tb:sourceweave:north-reach:S002",
+      "origin_id": "S002",
+      "kind": "source",
+      "text": "1978 folklore book",
+      "origin": {"tool": "sourceweave", "project": "north-reach"},
+      "payload": {"kind": "later-retelling", "date": "1978"}
+    },
+    {
+      "id": "tb:sourceweave:north-reach:D004",
+      "origin_id": "D004",
+      "kind": "claim",
+      "text": "The warning-note detail is present in the 1978 folklore book.",
+      "origin": {"tool": "sourceweave", "project": "north-reach"},
+      "payload": {"observation": "present"}
+    },
+    {
+      "id": "tb:evidence-ledger:north-reach:E002",
+      "origin_id": "E002",
+      "kind": "evidence",
+      "text": "The 1978 folklore book reports that a warning note existed.",
+      "origin": {"tool": "evidence-ledger", "project": "north-reach"},
+      "payload": {
+        "evidence_type": "secondhand-report",
+        "stance": "supports",
+        "independence": "unknown"
+      }
+    },
+    {
+      "id": "tb:provenance-lens:north-reach:U002",
+      "origin_id": "U002",
+      "kind": "writing-unit",
+      "text": "The warning note appears in a 1978 folklore book.",
+      "origin": {"tool": "provenance-lens", "project": "north-reach"},
+      "payload": {"classification": "direct-support"}
+    }
+  ],
+  "links": [
+    {
+      "from": "tb:sourceweave:north-reach:D004",
+      "to": "tb:sourceweave:north-reach:S002",
+      "type": "cites",
+      "note": "Sourceweave records the detail in this source."
+    },
+    {
+      "from": "tb:evidence-ledger:north-reach:E002",
+      "to": "tb:sourceweave:north-reach:D004",
+      "type": "derives-from",
+      "note": "Evidence Ledger preserves the Sourceweave provenance bridge."
+    },
+    {
+      "from": "tb:evidence-ledger:north-reach:E002",
+      "to": "tb:provenance-lens:north-reach:U002",
+      "type": "supports",
+      "note": "Provenance Lens can inspect the finished writing unit without losing the evidence origin."
+    }
+  ]
+}
