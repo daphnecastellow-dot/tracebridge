@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/daphnecastellow-dot/tracebridge/schema.json",
+  "title": "Tracebridge 0.1 packet",
+  "type": "object",
+  "required": ["format", "created_at", "origin", "records", "links"],
+  "properties": {
+    "format": {"const": "tracebridge/0.1"},
+    "created_at": {"type": "string"},
+    "origin": {"$ref": "#/$defs/origin"},
+    "merged_from": {"type": "array", "items": {"$ref": "#/$defs/origin"}},
+    "records": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+    "links": {"type": "array", "items": {"$ref": "#/$defs/link"}}
+  },
+  "$defs": {
+    "origin": {
+      "type": "object",
+      "required": ["tool", "project"],
+      "properties": {
+        "tool": {"type": "string", "minLength": 1},
+        "project": {"type": "string", "minLength": 1},
+        "tool_version": {"type": "string"},
+        "repository": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "record": {
+      "type": "object",
+      "required": ["id", "origin_id", "kind", "origin", "payload"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "origin_id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["source", "claim", "evidence", "version", "conflict", "hypothesis", "check", "writing-unit", "transition", "note", "other"]},
+        "text": {"type": "string"},
+        "origin": {"$ref": "#/$defs/origin"},
+        "payload": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "link": {
+      "type": "object",
+      "required": ["from", "to", "type"],
+      "properties": {
+        "from": {"type": "string", "minLength": 1},
+        "to": {"type": "string", "minLength": 1},
+        "type": {"enum": ["supports", "contradicts", "derives-from", "cites", "revises", "transforms", "basis-for", "checks", "related"]},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
