@@ -197,6 +197,31 @@ references or dependency types by the owning validators. The suite fails clearly
 when an owning checkout is missing. For these consumers, full snapshots suffice;
 individual-record projections remain unimplemented and unnecessary for the tested flows.
 
+
+## Ten-tool architecture stress test
+
+A separate architecture suite runs one fictional research case through the full
+ten-repository system. It checks that source lineage, claim revision, contradiction,
+negative search results, evidence classification, claim drift, finished-writing
+provenance, assumption impact, continuity state, and Tracebridge transport remain
+distinct when combined.
+
+GitHub CI checks out exact pinned commits of the nine peer tools and runs:
+
+```bash
+python -m unittest discover -s architecture_tests -v
+```
+
+The suite specifically protects against quiet cross-tool flattening: a `not-found`
+search must not become proof of absence; an open contradiction must remain open;
+challenging a Hingecheck assumption must not mutate downstream records; Bridgekeeper
+changes and corrections must remain distinct; identical local IDs from different tools
+must keep separate bridge addresses; and merging packets must not invent relationships.
+
+See [`architecture_tests/README.md`](architecture_tests/README.md) for the scenario and
+local test setup. The pinned commits are tested contracts, not floating compatibility
+promises.
+
 ## License and reuse
 
 **No reuse license has been granted.**
