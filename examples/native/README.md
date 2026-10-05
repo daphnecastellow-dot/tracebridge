@@ -15,3 +15,8 @@ collisions, namespace escaping, CLI round trips, and output overwrite refusal.
 
 Run the commands in the main README from the repository root. Native validity stays
 with the owning tool; Tracebridge transports the snapshot without interpreting it.
+
+The separate `compatibility_tests` suite exercises these fixtures against the owning
+implementations at the same commits. CI checks out those public repositories only
+for tests; Tracebridge does not import them at runtime. Deliberately invalid variants
+also prove that transport validation does not replace native validation.

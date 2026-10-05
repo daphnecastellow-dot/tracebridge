@@ -178,6 +178,25 @@ It gives the instruments a compatible plug shape while leaving each instrument i
 python -m unittest discover -s tests -v
 ```
 
+The separate native-consumer suite loads the actual Bridgekeeper and Hingecheck
+implementations from explicitly supplied checkouts. GitHub CI pins those checkouts
+to the commits recorded in [`examples/native/README.md`](examples/native/README.md).
+Those versions are tested contracts, not a claim of compatibility with every future
+release. The native tools are test inputs, not Tracebridge runtime dependencies.
+
+```bash
+TRACEBRIDGE_BRIDGEKEEPER_ROOT=/path/to/bridgekeeper \
+TRACEBRIDGE_HINGECHECK_ROOT=/path/to/hingecheck \
+python -m unittest discover -s compatibility_tests -v
+```
+
+The contracts verify CLI restoration into the native loaders, equivalent Bridgekeeper
+audit/report output, equivalent Hingecheck impact output without mutation, separate
+native authority namespaces in merged packets, and rejection of invalid native
+references or dependency types by the owning validators. The suite fails clearly
+when an owning checkout is missing. For these consumers, full snapshots suffice;
+individual-record projections remain unimplemented and unnecessary for the tested flows.
+
 ## License and reuse
 
 **No reuse license has been granted.**

@@ -7,6 +7,7 @@ on:
       - "pyproject.toml"
       - "schema.json"
       - "tests/**"
+      - "compatibility_tests/**"
       - "examples/**"
       - ".github/workflows/tracebridge-tests.yml"
   pull_request:
@@ -15,6 +16,7 @@ on:
       - "pyproject.toml"
       - "schema.json"
       - "tests/**"
+      - "compatibility_tests/**"
       - "examples/**"
       - ".github/workflows/tracebridge-tests.yml"
 
@@ -31,6 +33,25 @@ jobs:
           python-version: "3.12"
       - name: Run tests
         run: python -m unittest discover -s tests -v
+      - name: Check out Bridgekeeper contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/bridgekeeper
+          ref: 91395c8b3e7c3ed58808faa23b81649b3f3f50b1
+          path: .native-contracts/bridgekeeper
+          persist-credentials: false
+      - name: Check out Hingecheck contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/hingecheck
+          ref: fc8d239636fcba6525c3d322316b45a9f467d42e
+          path: .native-contracts/hingecheck
+          persist-credentials: false
+      - name: Verify restored snapshots with native consumers
+        env:
+          TRACEBRIDGE_BRIDGEKEEPER_ROOT: ${{ github.workspace }}/.native-contracts/bridgekeeper
+          TRACEBRIDGE_HINGECHECK_ROOT: ${{ github.workspace }}/.native-contracts/hingecheck
+        run: python -m unittest discover -s compatibility_tests -v
       - name: Validate demo packet
         run: python tracebridge.py validate examples/demo.json
       - name: Render demo packet
