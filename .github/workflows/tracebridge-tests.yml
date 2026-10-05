@@ -10,6 +10,7 @@ on:
       - "schema.json"
       - "tests/**"
       - "compatibility_tests/**"
+      - "architecture_tests/**"
       - "examples/**"
       - ".github/workflows/tracebridge-tests.yml"
   pull_request:
@@ -21,6 +22,7 @@ on:
       - "schema.json"
       - "tests/**"
       - "compatibility_tests/**"
+      - "architecture_tests/**"
       - "examples/**"
       - ".github/workflows/tracebridge-tests.yml"
 
@@ -37,25 +39,90 @@ jobs:
           python-version: "3.12"
       - name: Run tests
         run: python -m unittest discover -s tests -v
+
+      - name: Check out Threadtrace contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/threadtrace
+          ref: 5fe72b59ade7f1be384b159e2aa462f02dc0b5d7
+          path: .architecture-contracts/threadtrace
+          persist-credentials: false
+      - name: Check out Sourceweave contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/sourceweave
+          ref: 613b1ee56361b8bada36647f5bfa9a2861224219
+          path: .architecture-contracts/sourceweave
+          persist-credentials: false
+      - name: Check out Contradiction Atlas contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/contradiction-atlas
+          ref: 92e1199d05fe65a583b6271f0f59546346d78112
+          path: .architecture-contracts/contradiction-atlas
+          persist-credentials: false
+      - name: Check out Negative Space contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/negative-space
+          ref: a9bbb23b5e81ab906df8531bc3a49a0b40256cfd
+          path: .architecture-contracts/negative-space
+          persist-credentials: false
+      - name: Check out Evidence Ledger contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/evidence-ledger
+          ref: d604df0db5aae7928c4aaa0532c7bedc85631b67
+          path: .architecture-contracts/evidence-ledger
+          persist-credentials: false
+      - name: Check out Provenance Lens contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/provenance-lens
+          ref: ca291675ccad0d77cac5ced436fe29e9659e3bc2
+          path: .architecture-contracts/provenance-lens
+          persist-credentials: false
+      - name: Check out Claim Drift contract version
+        uses: actions/checkout@v4
+        with:
+          repository: daphnecastellow-dot/claim-drift
+          ref: 6d435fd76d82898c19cd767f60ee9d55240375e9
+          path: .architecture-contracts/claim-drift
+          persist-credentials: false
       - name: Check out Bridgekeeper contract version
         uses: actions/checkout@v4
         with:
           repository: daphnecastellow-dot/bridgekeeper
-          ref: 91395c8b3e7c3ed58808faa23b81649b3f3f50b1
-          path: .native-contracts/bridgekeeper
+          ref: bb76ed3580f948cd03e087a65eecec0ddd721e6e
+          path: .architecture-contracts/bridgekeeper
           persist-credentials: false
       - name: Check out Hingecheck contract version
         uses: actions/checkout@v4
         with:
           repository: daphnecastellow-dot/hingecheck
-          ref: fc8d239636fcba6525c3d322316b45a9f467d42e
-          path: .native-contracts/hingecheck
+          ref: 8b9a07cd17096bbbe301da5a8b69e7e3a89c576f
+          path: .architecture-contracts/hingecheck
           persist-credentials: false
+
       - name: Verify restored snapshots with native consumers
         env:
-          TRACEBRIDGE_BRIDGEKEEPER_ROOT: ${{ github.workspace }}/.native-contracts/bridgekeeper
-          TRACEBRIDGE_HINGECHECK_ROOT: ${{ github.workspace }}/.native-contracts/hingecheck
+          TRACEBRIDGE_BRIDGEKEEPER_ROOT: ${{ github.workspace }}/.architecture-contracts/bridgekeeper
+          TRACEBRIDGE_HINGECHECK_ROOT: ${{ github.workspace }}/.architecture-contracts/hingecheck
         run: python -m unittest discover -s compatibility_tests -v
+
+      - name: Stress test the ten-tool architecture
+        env:
+          TRACEBRIDGE_THREADTRACE_ROOT: ${{ github.workspace }}/.architecture-contracts/threadtrace
+          TRACEBRIDGE_SOURCEWEAVE_ROOT: ${{ github.workspace }}/.architecture-contracts/sourceweave
+          TRACEBRIDGE_CONTRADICTION_ATLAS_ROOT: ${{ github.workspace }}/.architecture-contracts/contradiction-atlas
+          TRACEBRIDGE_NEGATIVE_SPACE_ROOT: ${{ github.workspace }}/.architecture-contracts/negative-space
+          TRACEBRIDGE_EVIDENCE_LEDGER_ROOT: ${{ github.workspace }}/.architecture-contracts/evidence-ledger
+          TRACEBRIDGE_PROVENANCE_LENS_ROOT: ${{ github.workspace }}/.architecture-contracts/provenance-lens
+          TRACEBRIDGE_CLAIM_DRIFT_ROOT: ${{ github.workspace }}/.architecture-contracts/claim-drift
+          TRACEBRIDGE_BRIDGEKEEPER_ROOT: ${{ github.workspace }}/.architecture-contracts/bridgekeeper
+          TRACEBRIDGE_HINGECHECK_ROOT: ${{ github.workspace }}/.architecture-contracts/hingecheck
+        run: python -m unittest discover -s architecture_tests -v
+
       - name: Validate demo packet
         run: python tracebridge.py validate examples/demo.json
       - name: Render demo packet
