@@ -10,6 +10,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 FORMAT = "tracebridge/0.1"
 RECORD_KINDS = (
@@ -20,6 +21,7 @@ LINK_TYPES = (
     "supports", "contradicts", "derives-from", "cites", "revises",
     "transforms", "basis-for", "checks", "related",
 )
+NATIVE_FORMATS = {"bridgekeeper/0.1": "bridgekeeper", "hingecheck/0.1": "hingecheck"}
 
 
 class TracebridgeError(Exception):
@@ -51,6 +53,45 @@ def new_packet(tool: str, project: str, tool_version: str = "", repository: str 
         "records": [],
         "links": [],
     }
+
+
+def wrap_native(document: dict[str, Any], project: str, snapshot_id: str) -> dict[str, Any]:
+    """Transport an opaque native snapshot, without deriving shared semantics."""
+    if (not isinstance(document, dict) or not isinstance(document.get("format"), str)
+            or document["format"] not in NATIVE_FORMATS):
+        raise TracebridgeError("unsupported native document format")
+    snapshot_id = snapshot_id.strip()
+    if not snapshot_id:
+        raise TracebridgeError("native snapshot requires a non-empty snapshot id")
+    native_format = document["format"]
+    tool = NATIVE_FORMATS[native_format]
+    if tool == "bridgekeeper" and document.get("bridge_id") != snapshot_id:
+        raise TracebridgeError("Bridgekeeper snapshot id must equal its native bridge_id")
+    packet = new_packet(tool, project, "0.1")
+    record_id = f"tb:{tool}:{quote(packet['origin']['project'], safe='')}:{quote(snapshot_id, safe='')}"
+    add_record(packet, record_id, snapshot_id, "other", f"{tool} native snapshot: {snapshot_id}", {
+        "native_format": native_format,
+        "native_document": document,
+    })
+    validate(packet)
+    return packet
+
+
+def unwrap_native(packet: dict[str, Any], record_id: str) -> dict[str, Any]:
+    """Recover the native JSON value from an explicitly selected snapshot."""
+    validate(packet)
+    record = find_record(packet, record_id)
+    payload = record["payload"]
+    document = payload.get("native_document")
+    native_format = payload.get("native_format")
+    if (record["kind"] != "other" or not isinstance(native_format, str)
+            or native_format not in NATIVE_FORMATS or not isinstance(document, dict)
+            or document.get("format") != native_format
+            or record["origin"]["tool"] != NATIVE_FORMATS[native_format]):
+        raise TracebridgeError("record is not a supported native snapshot")
+    if native_format == "bridgekeeper/0.1" and document.get("bridge_id") != record["origin_id"]:
+        raise TracebridgeError("Bridgekeeper snapshot identity mismatch")
+    return copy.deepcopy(document)
 
 
 def find_record(packet: dict[str, Any], record_id: str) -> dict[str, Any]:
@@ -340,12 +381,39 @@ def parser() -> argparse.ArgumentParser:
     q = sub.add_parser("merge")
     q.add_argument("files", nargs="+")
     q.add_argument("-o", "--output", required=True)
+
+    q = sub.add_parser("wrap-native")
+    q.add_argument("file")
+    q.add_argument("--project", required=True)
+    q.add_argument("--snapshot-id", required=True)
+    q.add_argument("-o", "--output", required=True)
+
+    q = sub.add_parser("unwrap-native")
+    q.add_argument("file")
+    q.add_argument("--id", required=True)
+    q.add_argument("-o", "--output", required=True)
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command in ("wrap-native", "unwrap-native"):
+            output_path = Path(args.output)
+            if output_path.exists():
+                raise TracebridgeError(f"refusing to overwrite existing file: {output_path}")
+            if args.command == "wrap-native":
+                try:
+                    document = json.loads(Path(args.file).read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise TracebridgeError(f"cannot read native JSON: {exc}") from exc
+                save(output_path, wrap_native(document, args.project, args.snapshot_id))
+            else:
+                document = unwrap_native(load(args.file), args.id)
+                output_path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(args.output)
+            return 0
+
         if args.command == "new":
             if Path(args.file).exists():
                 raise TracebridgeError(f"refusing to overwrite existing file: {args.file}")

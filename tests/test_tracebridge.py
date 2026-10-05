@@ -1,4 +1,7 @@
 import copy
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,10 +17,90 @@ from tracebridge import (
     render_mermaid,
     save,
     validate,
+    wrap_native,
+    unwrap_native,
 )
 
 
 class TracebridgeTests(unittest.TestCase):
+    def native(self, tool):
+        return json.loads((Path(__file__).resolve().parents[1] / "examples" / "native" / f"{tool}.json").read_text())
+
+    def test_bridgekeeper_round_trip_preserves_distinct_state(self):
+        native = self.native("bridgekeeper")
+        native["future_field"] = {"opaque": [False, None, "α"]}
+        original = copy.deepcopy(native)
+        packet = wrap_native(native, "north-reach", native["bridge_id"])
+        native["canonical"][0]["value"] = "changed outside packet"
+        recovered = unwrap_native(packet, packet["records"][0]["id"])
+        self.assertEqual(recovered, original)
+        self.assertNotEqual(recovered["changes"], recovered["corrections"])
+        self.assertEqual(recovered["supersedes"], ["bridge-014"])
+        self.assertTrue(recovered["unresolved"][0]["reopen_when"])
+        recovered["canonical"].clear()
+        self.assertEqual(unwrap_native(packet, packet["records"][0]["id"]), original)
+
+    def test_hingecheck_handoff_does_not_mutate_dependents(self):
+        native = self.native("hingecheck")
+        original = copy.deepcopy(native)
+        packet = wrap_native(native, "north-reach", "hinges-001")
+        recovered = unwrap_native(packet, packet["records"][0]["id"])
+        self.assertEqual(native, original)
+        self.assertEqual(recovered, original)
+        self.assertEqual(recovered["assumptions"][0]["status"], "challenged")
+        self.assertEqual(packet["links"], [])
+
+    def test_native_snapshots_merge_and_keep_origin_and_collisions(self):
+        bridge = self.native("bridgekeeper")
+        hinge = self.native("hingecheck")
+        a = wrap_native(bridge, "north-reach", bridge["bridge_id"])
+        b = wrap_native(hinge, "north-reach", "hinges-001")
+        merged = merge_packets([a, b])
+        self.assertEqual(unwrap_native(merged, a["records"][0]["id"]), bridge)
+        self.assertEqual(unwrap_native(merged, b["records"][0]["id"]), hinge)
+        hinge["assumptions"][0]["status"] = "invalidated"
+        with self.assertRaises(TracebridgeError):
+            merge_packets([b, wrap_native(hinge, "north-reach", "hinges-001")])
+        later = wrap_native(hinge, "north-reach", "hinges-002")
+        self.assertEqual(len(merge_packets([b, later])["records"]), 2)
+
+    def test_snapshot_addresses_escape_namespace_separators(self):
+        native = self.native("hingecheck")
+        a = wrap_native(native, "a:b", "c")
+        b = wrap_native(native, "a", "b:c")
+        self.assertNotEqual(a["records"][0]["id"], b["records"][0]["id"])
+
+    def test_native_envelope_rejects_unsupported_or_mismatched_identity(self):
+        for native in ({"format": "unknown/0.1"}, {"format": []}, []):
+            with self.assertRaises(TracebridgeError):
+                wrap_native(native, "north", "snapshot")
+        with self.assertRaises(TracebridgeError):
+            wrap_native(self.native("bridgekeeper"), "north", "wrong-bridge")
+        with self.assertRaises(TracebridgeError):
+            wrap_native(self.native("hingecheck"), "north", " ")
+        packet = wrap_native(self.native("hingecheck"), "north", "snapshot")
+        packet["records"][0]["payload"]["native_format"] = "bridgekeeper/0.1"
+        with self.assertRaises(TracebridgeError):
+            unwrap_native(packet, packet["records"][0]["id"])
+
+    def test_native_cli_round_trip_and_overwrite_refusal(self):
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as td:
+            packet_path, restored = Path(td) / "packet.json", Path(td) / "restored.json"
+            command = [sys.executable, str(root / "tracebridge.py"), "wrap-native",
+                       str(root / "examples/native/hingecheck.json"), "--project", "north-reach",
+                       "--snapshot-id", "hinges-001", "-o", str(packet_path)]
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            before = packet_path.read_bytes()
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 2)
+            self.assertEqual(packet_path.read_bytes(), before)
+            record_id = load(packet_path)["records"][0]["id"]
+            restore = [sys.executable, str(root / "tracebridge.py"), "unwrap-native", str(packet_path),
+                       "--id", record_id, "-o", str(restored)]
+            self.assertEqual(subprocess.run(restore, capture_output=True).returncode, 0)
+            self.assertEqual(json.loads(restored.read_text()), self.native("hingecheck"))
+            self.assertEqual(subprocess.run(restore, capture_output=True).returncode, 2)
+
     def test_record_preserves_local_and_bridge_ids(self):
         packet = new_packet("sourceweave", "north-reach", "0.1")
         add_record(

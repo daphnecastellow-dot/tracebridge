@@ -111,8 +111,43 @@ Tracebridge v0.1 includes a documented mapping for:
 - Evidence Ledger
 - Provenance Lens
 - Claim Drift
+- Bridgekeeper (complete native continuity snapshots)
+- Hingecheck (complete native assumption snapshots)
 
 See [`SPEC.md`](SPEC.md).
+
+## Native snapshots without semantic conversion
+
+Bridgekeeper and Hingecheck can cross the existing `tracebridge/0.1` surface as an
+`other` record containing their complete native JSON document. This is transport,
+not a conversion to a shared state model. Unknown native fields survive too.
+
+```bash
+python tracebridge.py wrap-native examples/native/bridgekeeper.json \
+  --project north-reach --snapshot-id bridge-015 -o continuity-packet.json
+python tracebridge.py wrap-native examples/native/hingecheck.json \
+  --project north-reach --snapshot-id hinges-001 -o assumptions-packet.json
+python tracebridge.py merge continuity-packet.json assumptions-packet.json -o combined.json
+python tracebridge.py unwrap-native combined.json \
+  --id tb:bridgekeeper:north-reach:bridge-015 -o restored-handoff.json
+```
+
+The project argument is an explicit cross-tool namespace; it does not rewrite the
+native project or title. Bridgekeeper uses its native `bridge_id` as the snapshot
+ID. Hingecheck has no native snapshot ID, so the caller assigns a stable ID to that
+specific snapshot and uses a new ID when its content changes. Merge refuses changed
+content under a reused ID. IDs escape namespace separators.
+
+Changes and corrections remain separate lists. Canonical declarations, unresolved
+items, reopening conditions, supersession, authority locations, assumption status
+history, and exact dependency types remain native payload data. No links or
+downstream conclusions are inferred. These commands refuse to overwrite output files.
+
+Validate the native input with its owning tool before wrapping it. Tracebridge checks
+the supported native format and envelope identity, not native semantic validity.
+Unwrapping restores the JSON value, not its original whitespace or byte formatting.
+This first integration supports whole snapshots; automatic per-record conversion,
+dependency resolution, and import into another tool are not implemented.
 
 ## Outputs
 
