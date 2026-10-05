@@ -5,6 +5,8 @@ on:
     paths:
       - "tracebridge.py"
       - "pyproject.toml"
+      - "README.md"
+      - "SPEC.md"
       - "schema.json"
       - "tests/**"
       - "compatibility_tests/**"
@@ -14,6 +16,8 @@ on:
     paths:
       - "tracebridge.py"
       - "pyproject.toml"
+      - "README.md"
+      - "SPEC.md"
       - "schema.json"
       - "tests/**"
       - "compatibility_tests/**"
