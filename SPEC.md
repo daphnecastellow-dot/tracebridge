@@ -156,3 +156,20 @@ Packet-level origins are preserved in `merged_from`; record-level origins remain
 Tracebridge transports structure. It does not reinterpret it.
 
 If one tool exports a field that another tool does not understand, that field belongs in `payload` and survives the handoff unchanged.
+
+## Version and compatibility policy
+
+Tracebridge keeps implementation versioning and stored-format versioning explicit and separate.
+
+- The Python package version in `pyproject.toml` describes the implementation release, for example `0.1.0`.
+- The packet `format` value describes the durable interchange contract, for example `tracebridge/0.1`.
+- A package release may change without changing the packet format when existing valid packets keep the same meaning and the validator, merge behavior, and boundary rules remain compatible.
+- A breaking change to stored packet meaning or required structure must use a new explicit format identity rather than silently changing what `tracebridge/0.1` means.
+- Support for an owning tool's native snapshot format is explicit. A future `bridgekeeper/*` or `hingecheck/*` format is not assumed compatible merely because its tool name is familiar.
+- Native-consumer compatibility is commit-pinned and test-backed. A green compatibility run proves the pinned combination tested by that run; it is not a promise about every future commit of the owning repositories.
+- Updating a pinned native-tool commit requires rerunning the compatibility suite against that exact commit before the pin is treated as supported.
+- Tracebridge does not silently migrate, reinterpret, or rewrite an older packet or native snapshot into a newer format. Any future migration path must be explicit and inspectable.
+- Unknown tool-native fields carried inside an opaque payload remain native data and must survive transport unchanged unless a future versioned contract says otherwise.
+
+Semantic contract files are CI-relevant. Changes to the implementation, package metadata, README, packet specification, JSON schema, examples, unit tests, compatibility tests, or workflow definition must leave an exact-current test result for the resulting commit.
+
